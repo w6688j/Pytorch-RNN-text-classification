@@ -40,8 +40,8 @@ args = parser.parse_args()
 gen = args.gen + str(args.embedding_size) + 'v'
 # load vocab
 d_word_index, model = None, None
-if os.path.exists(args.gen + '/d_word_index.pkl'):
-    d_word_index = joblib.load(args.gen + '/d_word_index.pkl')
+if os.path.exists(gen + '/d_word_index.pkl'):
+    d_word_index = joblib.load(gen + '/d_word_index.pkl')
 
 # create tester
 print("===> creating dataloaders ...")
