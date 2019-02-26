@@ -6,12 +6,12 @@ import os
 import argparse
 
 import numpy as np
-from sklearn.externals import  joblib
+from sklearn.externals import joblib
 import torch
 from torch import nn
 import torch.backends.cudnn as cudnn
 
-from vocab import  VocabBuilder, GloveVocabBuilder
+from vocab import VocabBuilder, GloveVocabBuilder
 from dataloader import TextClassDataLoader
 from model import RNN
 from util import AverageMeter, accuracy
@@ -34,11 +34,11 @@ parser.add_argument('--classes', default=8, type=int, metavar='N', help='number 
 parser.add_argument('--min-samples', default=5, type=int, metavar='N', help='min number of tokens')
 parser.add_argument('--cuda', default=False, action='store_true', help='use cuda')
 parser.add_argument('--glove', default='glove/glove.6B.100d.txt', help='path to glove txt')
+parser.add_argument('--gen', default='gen/glove_', help='path to glove txt')
 parser.add_argument('--rnn', default='LSTM', choices=['LSTM', 'GRU'], help='rnn module type')
 parser.add_argument('--mean_seq', default=False, action='store_true', help='use mean of rnn output')
 parser.add_argument('--clip', type=float, default=0.25, help='gradient clipping')
 args = parser.parse_args()
-
 
 # create vocab
 print("===> creating vocabs ...")
@@ -52,31 +52,32 @@ else:
     v_builder = VocabBuilder(path_file='data/train_pdtb.tsv')
     d_word_index, embed = v_builder.get_word_index(min_sample=args.min_samples)
 
-if not os.path.exists('gen'):
-    os.mkdir('gen')
-joblib.dump(d_word_index, 'gen/d_word_index_pdtb.pkl', compress=3)
-print('===> vocab creatin: {t:.3f}'.format(t=time.time()-end))
+gen = args.gen + str(args.embedding_size) + 'v'
+if not os.path.exists(gen):
+    os.makedirs(gen)
+joblib.dump(d_word_index, gen + '/d_word_index.pkl', compress=3)
+print('===> vocab creatin: {t:.3f}'.format(t=time.time() - end))
 
-print('args: ',args)
+print('args: ', args)
 
 # create trainer
 print("===> creating dataloaders ...")
 end = time.time()
 train_loader = TextClassDataLoader('data/train_pdtb.tsv', d_word_index, batch_size=args.batch_size)
 val_loader = TextClassDataLoader('data/test_pdtb.tsv', d_word_index, batch_size=args.batch_size)
-print('===> dataloader creatin: {t:.3f}'.format(t=time.time()-end))
-
+print('===> dataloader creatin: {t:.3f}'.format(t=time.time() - end))
 
 # create model
 print("===> creating rnn model ...")
 vocab_size = len(d_word_index)
 model = RNN(vocab_size=vocab_size, embed_size=args.embedding_size, num_output=args.classes, rnn_model=args.rnn,
-            use_last=( not args.mean_seq),
+            use_last=(not args.mean_seq),
             hidden_size=args.hidden_size, embedding_tensor=embed, num_layers=args.layers, batch_first=True)
 print(model)
 
 # optimizer and loss
-optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, weight_decay=args.weight_decay)
+optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr,
+                             weight_decay=args.weight_decay)
 
 criterion = nn.CrossEntropyLoss()
 print(optimizer)
@@ -131,7 +132,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
             print('Epoch: [{0}][{1}/{2}]  Time {batch_time.val:.3f} ({batch_time.avg:.3f})  '
                   'Data {data_time.val:.3f} ({data_time.avg:.3f})  Loss {loss.val:.4f} ({loss.avg:.4f})  '
                   'Prec@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
-                   epoch, i, len(train_loader), batch_time=batch_time, data_time=data_time, loss=losses, top1=top1))
+                epoch, i, len(train_loader), batch_time=batch_time, data_time=data_time, loss=losses, top1=top1))
             gc.collect()
 
 
@@ -143,14 +144,14 @@ def test(val_loader, model, criterion):
     # switch to evaluate mode
     model.eval()
     end = time.time()
-    for i, (input, target,seq_lengths) in enumerate(val_loader):
+    for i, (input, target, seq_lengths) in enumerate(val_loader):
 
         if args.cuda:
             input = input.cuda()
             target = target.cuda()
 
         # compute output
-        output = model(input,seq_lengths)
+        output = model(input, seq_lengths)
         loss = criterion(output, target)
 
         # measure accuracy and record loss
@@ -162,10 +163,10 @@ def test(val_loader, model, criterion):
         batch_time.update(time.time() - end)
         end = time.time()
 
-        if i!= 0 and i % args.print_freq == 0:
+        if i != 0 and i % args.print_freq == 0:
             print('Test: [{0}/{1}]  Time {batch_time.val:.3f} ({batch_time.avg:.3f})  '
                   'Loss {loss.val:.4f} ({loss.avg:.4f})  Prec@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
-                   i, len(val_loader), batch_time=batch_time, loss=losses, top1=top1))
+                i, len(val_loader), batch_time=batch_time, loss=losses, top1=top1))
             gc.collect()
 
     print(' * Prec@1 {top1.avg:.3f}'.format(top1=top1))
@@ -173,13 +174,13 @@ def test(val_loader, model, criterion):
 
 
 # training and testing
-for epoch in range(1, args.epochs+1):
+for epoch in range(1, args.epochs + 1):
     adjust_learning_rate(args.lr, optimizer, epoch)
     train(train_loader, model, criterion, optimizer, epoch)
     test(val_loader, model, criterion)
 
     # save current model
     if epoch % args.save_freq == 0:
-        name_model = 'rnn_pdtb_{}.pkl'.format(epoch)
+        name_model = gen + '/rnn_{}.pkl'.format(epoch)
         path_save_model = os.path.join('gen', name_model)
         joblib.dump(model.float(), path_save_model, compress=2)

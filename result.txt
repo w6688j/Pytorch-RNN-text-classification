@@ -1,0 +1,4 @@
+glove_pdtb_100v Prec@1 54.395
+glove_pdtb_300v Prec@1 50.781
+pdtb_100v       Prec@1 49.512
+pdtb_300v       Prec@1 49.512

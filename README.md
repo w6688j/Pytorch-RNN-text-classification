@@ -24,5 +24,5 @@ python preprocess.py
 - The following command starts training. Run it with ```-h``` for optional arguments.
 
 ```
-python main.py
+python main.py --cuda --glove '' --gen 'gen/pdtb_' --embedding-size 300
 ```

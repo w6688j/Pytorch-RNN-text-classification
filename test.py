@@ -31,23 +31,25 @@ parser.add_argument('--classes', default=8, type=int, metavar='N', help='number 
 parser.add_argument('--min-samples', default=5, type=int, metavar='N', help='min number of tokens')
 parser.add_argument('--cuda', default=False, action='store_true', help='use cuda')
 parser.add_argument('--glove', default='glove/glove.6B.300d.txt', help='path to glove txt')
+parser.add_argument('--gen', default='gen/glove_', help='path to glove txt')
 parser.add_argument('--rnn', default='LSTM', choices=['LSTM', 'GRU'], help='rnn module type')
 parser.add_argument('--mean_seq', default=False, action='store_true', help='use mean of rnn output')
 parser.add_argument('--clip', type=float, default=0.25, help='gradient clipping')
 args = parser.parse_args()
 
+gen = args.gen + str(args.embedding_size) + 'v'
 # load vocab
 d_word_index, model = None, None
-if os.path.exists('gen/d_word_index_pdtb.pkl'):
-    d_word_index = joblib.load('gen/d_word_index_pdtb.pkl')
+if os.path.exists(args.gen + '/d_word_index.pkl'):
+    d_word_index = joblib.load(args.gen + '/d_word_index.pkl')
 
 # create tester
 print("===> creating dataloaders ...")
 val_loader = TextClassDataLoader('data/test_pdtb.tsv', d_word_index, batch_size=args.batch_size)
 
 # load model
-if os.path.exists('gen/rnn_pdtb_50.pkl'):
-    model = joblib.load('gen/rnn_pdtb_50.pkl')
+if os.path.exists(gen + '/rnn_50.pkl'):
+    model = joblib.load(gen + '/rnn_50.pkl')
 
 # optimizer and loss
 optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr,
