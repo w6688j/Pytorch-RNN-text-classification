@@ -178,9 +178,9 @@ for epoch in range(1, args.epochs + 1):
     adjust_learning_rate(args.lr, optimizer, epoch)
     train(train_loader, model, criterion, optimizer, epoch)
     test(val_loader, model, criterion)
-
     # save current model
     if epoch % args.save_freq == 0:
-        name_model = gen + '/rnn_{}.pkl'.format(epoch)
-        path_save_model = os.path.join('gen', name_model)
+        name_model = '/rnn_{}.pkl'.format(epoch)
+        path_save_model = os.path.join(gen, name_model)
+        print(path_save_model)
         joblib.dump(model.float(), path_save_model, compress=2)
