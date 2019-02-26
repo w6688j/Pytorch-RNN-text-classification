@@ -1,23 +1,31 @@
+import io
 import csv
 
 # import nltk
 
 LABEL_TO_INDEX = {
-    'business':                  0,
-    'computers':                 1,
-    'culture-arts-entertainment':2,
-    'education-science':         3,
-    'engineering':               4,
-    'health':                    5,
-    'politics-society':          6,
-    'sports':                    7
+    'business': 0,
+    'computers': 1,
+    'culture-arts-entertainment': 2,
+    'education-science': 3,
+    'engineering': 4,
+    'health': 5,
+    'politics-society': 6,
+    'sports': 7
 }
 
-def create_tsv_file(path_in, path_out):
+PDTB_LABEL_TO_INDEX = {
+    'Comparison': 0,
+    'Contingency': 1,
+    'Temporal': 2,
+    'Expansion': 3
+}
 
-    with open(path_in,'r') as f, open(path_out,'w') as fw:
+
+def create_tsv_file(path_in, path_out):
+    with open(path_in, 'r') as f, open(path_out, 'w') as fw:
         writer = csv.writer(fw, delimiter='\t')
-        writer.writerow(['label','body'])
+        writer.writerow(['label', 'body'])
         for line in f:
             tokens = [x.lower() for x in line.split()]
             label = LABEL_TO_INDEX[tokens[-1]]
@@ -25,14 +33,30 @@ def create_tsv_file(path_in, path_out):
             writer.writerow([label, body])
 
 
+def create_pdtb_tsv_file(path_in, path_out):
+    with open(path_in, 'r') as f, open(path_out, 'w') as fw:
+        writer = csv.writer(fw, delimiter='\t')
+        writer.writerow(['label', 'body'])
+        for line in f:
+            line_sp = line.strip().replace(',', ' ')
+            line_sp = line_sp.replace('"', ' ')
+            line_sp = line_sp.split('|||')
+            arg_pairs = line_sp[1] + ' ' + line_sp[2]
+            tokens = [x.lower() for x in arg_pairs.split()]
+            label = PDTB_LABEL_TO_INDEX[line_sp[0]]
+            body = ' '.join(tokens)
+            writer.writerow([label, body])
+
+
 def _tokenize(text):
     # return [x.lower() for x in nltk.word_tokenize(text)]
-    return [ x.lower() for x in text.split() ]
+    return [x.lower() for x in text.split()]
 
 
 ''' from https://github.com/pytorch/examples/blob/master/imagenet/main.py'''
-class AverageMeter(object):
 
+
+class AverageMeter(object):
     """Computes and stores the average and current value"""
 
     def __init__(self):
@@ -54,6 +78,7 @@ class AverageMeter(object):
 def accuracy(output, target, topk=(1,)):
     """Computes the precision@k for the specified values of k"""
     maxk = max(topk)
+
     batch_size = target.size(0)
 
     _, pred = output.topk(maxk, 1, True, True)
@@ -72,4 +97,3 @@ def adjust_learning_rate(lr, optimizer, epoch):
     lr = lr * (0.1 ** (epoch // 8))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
-

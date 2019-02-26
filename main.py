@@ -49,12 +49,12 @@ if os.path.exists(args.glove):
     d_word_index, embed = v_builder.get_word_index()
     args.embedding_size = embed.size(1)
 else:
-    v_builder = VocabBuilder(path_file='data/train.tsv')
+    v_builder = VocabBuilder(path_file='data/train_pdtb.tsv')
     d_word_index, embed = v_builder.get_word_index(min_sample=args.min_samples)
 
 if not os.path.exists('gen'):
     os.mkdir('gen')
-joblib.dump(d_word_index, 'gen/d_word_index.pkl', compress=3)
+joblib.dump(d_word_index, 'gen/d_word_index_pdtb.pkl', compress=3)
 print('===> vocab creatin: {t:.3f}'.format(t=time.time()-end))
 
 print('args: ',args)
@@ -62,8 +62,8 @@ print('args: ',args)
 # create trainer
 print("===> creating dataloaders ...")
 end = time.time()
-train_loader = TextClassDataLoader('data/train.tsv', d_word_index, batch_size=args.batch_size)
-val_loader = TextClassDataLoader('data/test.tsv', d_word_index, batch_size=args.batch_size)
+train_loader = TextClassDataLoader('data/train_pdtb.tsv', d_word_index, batch_size=args.batch_size)
+val_loader = TextClassDataLoader('data/test_pdtb.tsv', d_word_index, batch_size=args.batch_size)
 print('===> dataloader creatin: {t:.3f}'.format(t=time.time()-end))
 
 
@@ -104,8 +104,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
         data_time.update(time.time() - end)
 
         if args.cuda:
-            input = input.cuda(async=True)
-            target = target.cuda(async=True)
+            input = input.cuda()
+            target = target.cuda()
 
         # compute output
         output = model(input, seq_lengths)
@@ -146,8 +146,8 @@ def test(val_loader, model, criterion):
     for i, (input, target,seq_lengths) in enumerate(val_loader):
 
         if args.cuda:
-            input = input.cuda(async=True)
-            target = target.cuda(async=True)
+            input = input.cuda()
+            target = target.cuda()
 
         # compute output
         output = model(input,seq_lengths)
@@ -174,13 +174,12 @@ def test(val_loader, model, criterion):
 
 # training and testing
 for epoch in range(1, args.epochs+1):
-
     adjust_learning_rate(args.lr, optimizer, epoch)
     train(train_loader, model, criterion, optimizer, epoch)
     test(val_loader, model, criterion)
 
     # save current model
     if epoch % args.save_freq == 0:
-        name_model = 'rnn_{}.pkl'.format(epoch)
+        name_model = 'rnn_pdtb_{}.pkl'.format(epoch)
         path_save_model = os.path.join('gen', name_model)
         joblib.dump(model.float(), path_save_model, compress=2)
